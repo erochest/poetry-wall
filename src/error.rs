@@ -1,6 +1,8 @@
 use std::error::Error;
 use std::fmt;
 
+pub type Result<A> = result::Result<A, error::PoetryWallError>;
+
 #[derive(Debug)]
 pub enum PoetryWallError {
     InvalidMissingOption(String)

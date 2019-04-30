@@ -1,23 +1,7 @@
-use std::path::{Path, PathBuf};
 use std::result;
+use crate::error::Result;
+use crate::options::PoetryWallOptions;
 
 pub mod error;
+pub mod options;
 
-pub type Result<A> = result::Result<A, error::PoetryWallError>;
-
-#[derive(Debug)]
-pub struct PoetryWallOptions {
-    poem_file: PathBuf,
-    font_file: PathBuf,
-    output_file: PathBuf,
-}
-
-impl PoetryWallOptions {
-    pub fn new<P: AsRef<Path>>(poem_file: P, font_file: P, output_file: P) -> Self {
-        PoetryWallOptions {
-            poem_file: poem_file.as_ref().into(),
-            font_file: font_file.as_ref().into(),
-            output_file: output_file.as_ref().into(),
-        }
-    }
-}

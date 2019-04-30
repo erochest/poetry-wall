@@ -2,15 +2,16 @@ use std::path::PathBuf;
 
 use clap::{app_from_crate, Arg, ArgMatches, crate_authors, crate_description, crate_name, crate_version};
 
-use poetry_wall::{PoetryWallOptions, Result};
-use poetry_wall::error::PoetryWallError;
+use poetry_wall::create_poetry_wall;
+use poetry_wall::error::{PoetryWallError, Result};
+use poetry_wall::options::PoetryWallOptions;
 
 fn main() -> Result<()> {
-    let _args = parse_args();
+    let options = parse_options()?;
     Ok(())
 }
 
-fn parse_args() -> Result<PoetryWallOptions> {
+fn parse_options() -> Result<PoetryWallOptions> {
     let matches = app_from_crate!()
         .arg(
             Arg::with_name("poem")
