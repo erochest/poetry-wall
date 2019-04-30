@@ -1,4 +1,7 @@
-use clap::{app_from_crate, crate_authors, crate_description, crate_name, crate_version, ArgMatches, Arg};
+use std::path::PathBuf;
+
+use clap::{app_from_crate, Arg, ArgMatches, crate_authors, crate_description, crate_name, crate_version};
+
 use crate::error::PoetryWallError;
 
 fn main() -> Result<(), PoetryWallError> {
@@ -6,8 +9,15 @@ fn main() -> Result<(), PoetryWallError> {
     Ok(())
 }
 
-fn parse_args<'a>() -> ArgMatches<'a> {
-    app_from_crate!()
+#[derive(Debug)]
+struct PoetryWallOptions {
+    poem_file: PathBuf,
+    font_file: PathBuf,
+    output_file: PathBuf,
+}
+
+fn parse_args() -> Result<PoetryWallOptions, PoetryWallError> {
+    let matches = app_from_crate!()
         .arg(
             Arg::with_name("poem")
                 .short("p")
@@ -35,7 +45,25 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .takes_value(true)
                 .required(true)
         )
-        .get_matches()
+        .get_matches();
+
+    let poem_file = path_buf_value(&matches, "poem")?;
+    let font_file = path_buf_value(&matches, "font")?;
+    let output_file = path_buf_value(&matches, "output")?;
+
+    Ok(PoetryWallOptions {
+        poem_file,
+        font_file,
+        output_file,
+    })
+}
+
+fn path_buf_value(matches: &ArgMatches, name: &str) -> Result<PathBuf, PoetryWallError> {
+    let path_buf = matches
+        .value_of(name)
+        .ok_or_else(|| PoetryWallError::InvalidMissingOption(String::from(name)))?
+        .into();
+    Ok(path_buf)
 }
 
 mod error;
