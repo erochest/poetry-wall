@@ -2,9 +2,9 @@ use std::path::{PathBuf, Path};
 
 #[derive(Debug)]
 pub struct PoetryWallOptions {
-    poem_file: PathBuf,
-    font_file: PathBuf,
-    output_file: PathBuf,
+    pub poem_file: PathBuf,
+    pub font_file: PathBuf,
+    pub output_file: PathBuf,
 }
 
 impl PoetryWallOptions {

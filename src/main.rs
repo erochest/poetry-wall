@@ -8,7 +8,7 @@ use poetry_wall::options::PoetryWallOptions;
 
 fn main() -> Result<()> {
     let options = parse_options()?;
-    Ok(())
+    create_poetry_wall(&options)
 }
 
 fn parse_options() -> Result<PoetryWallOptions> {
