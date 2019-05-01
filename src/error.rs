@@ -1,5 +1,6 @@
+use std::{fmt, io, result};
 use std::error::Error;
-use std::{fmt, result, io};
+
 use crate::error;
 
 pub type Result<A> = result::Result<A, error::PoetryWallError>;
@@ -9,6 +10,7 @@ pub enum PoetryWallError {
     InvalidMissingOption(String),
     IOError(io::Error),
     FontReadError(rusttype::Error),
+    ColorError(Option<String>),
 }
 
 impl fmt::Display for PoetryWallError {
@@ -19,7 +21,11 @@ impl fmt::Display for PoetryWallError {
             PoetryWallError::IOError(err) =>
                 write!(f, "IO Error: {:?}", err),
             PoetryWallError::FontReadError(err) =>
-                write!(f, "Font reading error: {:?}", err)
+                write!(f, "Font reading error: {:?}", err),
+            PoetryWallError::ColorError(Some(color)) =>
+                write!(f, "Invalid color name: {}", &color),
+            PoetryWallError::ColorError(None) =>
+                write!(f, "Missing color name"),
         }
     }
 }
@@ -31,6 +37,7 @@ impl Error for PoetryWallError {
                 "invalid/missing option",
             PoetryWallError::IOError(err) => err.description(),
             PoetryWallError::FontReadError(err) => err.description(),
+            PoetryWallError::ColorError(_) => "invalid/missing color name",
         }
     }
 }

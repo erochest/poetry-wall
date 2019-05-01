@@ -12,7 +12,6 @@ pub mod error;
 pub mod options;
 pub mod poem;
 
-// TODO: Color setting
 // TODO: Font size
 // TODO: Image size
 // TODO: Background color
@@ -31,7 +30,7 @@ pub fn create_poetry_wall(options: &PoetryWallOptions) -> Result<()> {
     let font = Font::from_bytes(&buffer)?;
 
     let scale = Scale::uniform(32.0);
-    let color = (255, 255, 255);
+    let color = options.color;
     let v_metrics = font.v_metrics(scale);
 
     let text = &poem.0[0];
@@ -53,6 +52,10 @@ pub fn create_poetry_wall(options: &PoetryWallOptions) -> Result<()> {
     };
 
     let mut image = DynamicImage::new_rgba8(width + 40, height + 40).to_rgba();
+    let background = [options.background.red, options.background.green, options.background.blue, 255];
+    for (_, _, pixel) in image.enumerate_pixels_mut() {
+        pixel.data = background;
+    }
     for glyph in glyphs {
         if let Some(bounding_box) = glyph.pixel_bounding_box() {
             glyph.draw(|x, y, v| {
@@ -60,7 +63,7 @@ pub fn create_poetry_wall(options: &PoetryWallOptions) -> Result<()> {
                     x + bounding_box.min.x as u32,
                     y + bounding_box.min.y as u32,
                     Rgba {
-                        data: [color.0, color.1, color.2, (v * 255.0) as u8],
+                        data: [color.red, color.green, color.blue, (v * 255.0) as u8],
                     },
                 )
             });
