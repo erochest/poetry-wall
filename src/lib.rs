@@ -1,14 +1,25 @@
-use crate::error::Result;
-use crate::options::PoetryWallOptions;
 use std::fs::File;
 use std::io::Read;
-use rusttype::{Font, Scale, point};
-use crate::poem::Poem;
+
 use image::{DynamicImage, Rgba};
+use rusttype::{Font, point, Scale};
+
+use crate::error::Result;
+use crate::options::PoetryWallOptions;
+use crate::poem::Poem;
 
 pub mod error;
 pub mod options;
 pub mod poem;
+
+// TODO: Color setting
+// TODO: Font size
+// TODO: Image size
+// TODO: Background color
+// TODO: poem's bounding box (kerning)
+// TODO: font scaling
+// TODO: poem's position
+// TODO: render all lines
 
 pub fn create_poetry_wall(options: &PoetryWallOptions) -> Result<()> {
     let poem = Poem::from_file(&options.poem_file)?;
