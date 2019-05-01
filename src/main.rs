@@ -6,6 +6,7 @@ use clap::{app_from_crate, Arg, ArgMatches, crate_authors, crate_description, cr
 use palette::Srgb;
 
 use poetry_wall::create_poetry_wall;
+use poetry_wall::dimension::Dimension;
 use poetry_wall::error::{PoetryWallError, Result};
 use poetry_wall::options::PoetryWallOptions;
 
@@ -65,7 +66,16 @@ fn parse_options() -> Result<PoetryWallOptions> {
                 .required(false)
                 .default_value("32")
         )
-
+        .arg(
+            Arg::with_name("dimensions")
+                .short("d")
+                .long("dimensions")
+                .help("The size of image to create, in the form 'WIDTHxHEIGHT'.")
+                .value_name("DIMENSION")
+                .takes_value(true)
+                .required(false)
+                .default_value("2880x2560")
+        )
         .arg(
             Arg::with_name("output")
                 .short("o")
@@ -83,8 +93,17 @@ fn parse_options() -> Result<PoetryWallOptions> {
     let color = color_name_value(&matches, "color")?;
     let background = color_name_value(&matches, "background")?;
     let font_size: f32 = read_name_value(&matches, "max-font-size")?;
+    let dimensions: Dimension = read_name_value(&matches, "dimensions")?;
 
-    Ok(PoetryWallOptions::new(poem_file, font_file, font_size, output_file, color, background))
+    Ok(PoetryWallOptions::new(
+        poem_file,
+        font_file,
+        font_size,
+        color,
+        background,
+        dimensions,
+        output_file,
+    ))
 }
 
 fn color_name_value(matches: &ArgMatches, name: &str) -> Result<Srgb<u8>> {

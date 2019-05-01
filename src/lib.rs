@@ -8,11 +8,12 @@ use crate::error::Result;
 use crate::options::PoetryWallOptions;
 use crate::poem::Poem;
 
+pub mod dimension;
 pub mod error;
 pub mod options;
 pub mod poem;
 
-// TODO: Image size
+// TODO: speed up with larger images
 // TODO: all lines
 // TODO: poem's bounding box (kerning)
 // TODO: font scaling
@@ -38,20 +39,7 @@ pub fn create_poetry_wall(options: &PoetryWallOptions) -> Result<()> {
         .layout(&text, scale, point(20.0, 20.0 + v_metrics.ascent))
         .collect::<Vec<_>>();
 
-    let height = (v_metrics.ascent - v_metrics.descent).ceil() as u32;
-    let width = {
-        let min_x = glyphs
-            .first()
-            .map(|g| g.pixel_bounding_box().unwrap().min.x)
-            .unwrap();
-        let max_x = glyphs
-            .last()
-            .map(|g| g.pixel_bounding_box().unwrap().max.x)
-            .unwrap();
-        (max_x - min_x) as u32
-    };
-
-    let mut image = DynamicImage::new_rgba8(width + 40, height + 40).to_rgba();
+    let mut image = DynamicImage::new_rgba8(options.dimensions.width, options.dimensions.height).to_rgba();
     let background = [options.background.red, options.background.green, options.background.blue, 255];
     for (_, _, pixel) in image.enumerate_pixels_mut() {
         pixel.data = background;

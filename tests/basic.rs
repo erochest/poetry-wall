@@ -17,6 +17,7 @@ fn test_basic_interaction() {
         .arg("--background").arg("black")
         .arg("--font").arg("./tests/fixtures/DejaVuSansMono.ttf")
         .arg("--max-font-size").arg("24")
+        .arg("--dimensions").arg("2880x2560")
         .arg("--output").arg(&output_file.path())
         .unwrap();
 

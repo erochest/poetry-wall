@@ -1,4 +1,4 @@
-use std::{fmt, io, result};
+use std::{fmt, io, num, result};
 use std::error::Error;
 
 use crate::error;
@@ -11,6 +11,7 @@ pub enum PoetryWallError {
     IOError(io::Error),
     FontReadError(rusttype::Error),
     ColorError(Option<String>),
+    DimensionReadError(String),
 }
 
 impl fmt::Display for PoetryWallError {
@@ -26,6 +27,8 @@ impl fmt::Display for PoetryWallError {
                 write!(f, "Invalid color name: {}", &color),
             PoetryWallError::ColorError(None) =>
                 write!(f, "Missing color name"),
+            PoetryWallError::DimensionReadError(value) =>
+                write!(f, "Invalid dimensions: {}", value),
         }
     }
 }
@@ -38,6 +41,7 @@ impl Error for PoetryWallError {
             PoetryWallError::IOError(err) => err.description(),
             PoetryWallError::FontReadError(err) => err.description(),
             PoetryWallError::ColorError(_) => "invalid/missing color name",
+            PoetryWallError::DimensionReadError(_) => "invalid dimension",
         }
     }
 }
@@ -51,5 +55,11 @@ impl From<io::Error> for PoetryWallError {
 impl From<rusttype::Error> for PoetryWallError {
     fn from(err: rusttype::Error) -> Self {
         PoetryWallError::FontReadError(err)
+    }
+}
+
+impl From<num::ParseIntError> for PoetryWallError {
+    fn from(error: num::ParseIntError) -> Self {
+        PoetryWallError::DimensionReadError(format!("Unable to parse number: {}", &error))
     }
 }
