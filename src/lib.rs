@@ -12,11 +12,11 @@ pub mod error;
 pub mod options;
 pub mod poem;
 
-// TODO: Font size
 // TODO: Image size
-// TODO: Background color
+// TODO: all lines
 // TODO: poem's bounding box (kerning)
 // TODO: font scaling
+// TODO: fix glyph background
 // TODO: poem's position
 // TODO: render all lines
 
@@ -29,7 +29,7 @@ pub fn create_poetry_wall(options: &PoetryWallOptions) -> Result<()> {
     font_file.read_to_end(&mut buffer)?;
     let font = Font::from_bytes(&buffer)?;
 
-    let scale = Scale::uniform(32.0);
+    let scale = Scale::uniform(options.font_size);
     let color = options.color;
     let v_metrics = font.v_metrics(scale);
 

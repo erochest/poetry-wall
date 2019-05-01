@@ -1,6 +1,8 @@
 use std::path::PathBuf;
+use std::str::FromStr;
 
-use clap::{app_from_crate, Arg, ArgMatches, crate_authors, crate_description, crate_name, crate_version};
+use clap::{app_from_crate, Arg, ArgMatches, crate_authors, crate_description, crate_name,
+           crate_version, value_t};
 use palette::Srgb;
 
 use poetry_wall::create_poetry_wall;
@@ -53,6 +55,18 @@ fn parse_options() -> Result<PoetryWallOptions> {
                 .required(true)
         )
         .arg(
+            Arg::with_name("max-font-size")
+                .short("F")
+                .long("max-font-size")
+                .help("The size of type to use rendering the poem. If there's not enough room, \
+                            it will be scaled down.")
+                .value_name("TTF_FONT")
+                .takes_value(true)
+                .required(false)
+                .default_value("32")
+        )
+
+        .arg(
             Arg::with_name("output")
                 .short("o")
                 .long("output")
@@ -63,21 +77,14 @@ fn parse_options() -> Result<PoetryWallOptions> {
         )
         .get_matches();
 
-    let poem_file = path_buf_value(&matches, "poem")?;
-    let font_file = path_buf_value(&matches, "font")?;
-    let output_file = path_buf_value(&matches, "output")?;
+    let poem_file: PathBuf = read_name_value(&matches, "poem")?;
+    let font_file = read_name_value(&matches, "font")?;
+    let output_file = read_name_value(&matches, "output")?;
     let color = color_name_value(&matches, "color")?;
     let background = color_name_value(&matches, "background")?;
+    let font_size: f32 = read_name_value(&matches, "max-font-size")?;
 
-    Ok(PoetryWallOptions::new(poem_file, font_file, output_file, color, background))
-}
-
-fn path_buf_value(matches: &ArgMatches, name: &str) -> Result<PathBuf> {
-    let path_buf = matches
-        .value_of(name)
-        .ok_or_else(|| PoetryWallError::InvalidMissingOption(String::from(name)))?
-        .into();
-    Ok(path_buf)
+    Ok(PoetryWallOptions::new(poem_file, font_file, font_size, output_file, color, background))
 }
 
 fn color_name_value(matches: &ArgMatches, name: &str) -> Result<Srgb<u8>> {
@@ -86,4 +93,8 @@ fn color_name_value(matches: &ArgMatches, name: &str) -> Result<Srgb<u8>> {
         .ok_or_else(|| PoetryWallError::ColorError(None))
         .and_then(|color_name| palette::named::from_str(color_name)
             .ok_or_else(|| PoetryWallError::ColorError(Some(color_name.into()))))
+}
+
+fn read_name_value<T: FromStr>(matches: &ArgMatches, name: &str) -> Result<T> {
+    value_t!(matches, name, T).map_err(|message| PoetryWallError::InvalidMissingOption(format!("{}: {}", &name, &message)))
 }
