@@ -5,19 +5,23 @@ extern crate test;
 
 use std::fs::File;
 use std::io::Read;
+use std::path::Path;
 
-use image::{DynamicImage, Rgba};
-use rusttype::{Font, point, Scale};
+use image::{DynamicImage, ImageBuffer, Rgba};
+use palette::Srgb;
+use rusttype::{Font, point, PositionedGlyph, Scale, VMetrics};
 
 use crate::error::Result;
 use crate::options::PoetryWallOptions;
 use crate::poem::Poem;
 
-
 pub mod dimension;
 pub mod error;
 pub mod options;
 pub mod poem;
+
+type Image = ImageBuffer<Rgba<u8>, Vec<u8>>;
+type GlyphVec<'a> = Vec<PositionedGlyph<'a>>;
 
 // TODO: poem's bounding box
 // TODO: font scaling
@@ -27,35 +31,59 @@ pub mod poem;
 
 pub fn create_poetry_wall(options: &PoetryWallOptions) -> Result<()> {
     let poem = Poem::from_file(&options.poem_file)?;
-
-    let mut font_file = File::open(&options.font_file)?;
-    let mut buffer = Vec::new();
-
-    font_file.read_to_end(&mut buffer)?;
-    let font = Font::from_bytes(&buffer)?;
+    let font = load_font(&options.font_file)?;
 
     let scale = Scale::uniform(options.font_size);
-    let color = options.color;
     let v_metrics = font.v_metrics(scale);
 
+    let glyphs = create_glyphs(&poem.0, &font, scale, &v_metrics, options.dimensions.height as f32);
+    let mut image = create_image(
+        options.dimensions.width,
+        options.dimensions.height,
+        options.background.red.into(),
+        options.background.green.into(),
+        options.background.blue.into(),
+    );
+    render_glyphs(&mut image, &glyphs, &options.color);
+
+    image.save(&options.output_file)?;
+
+    Ok(())
+}
+
+fn load_font<P: AsRef<Path>>(filename: P) -> Result<Font<'static>> {
+    let mut font_file = File::open(filename)?;
+    let mut buffer = Vec::new();
+    font_file.read_to_end(&mut buffer)?;
+    Font::from_bytes(buffer).map_err(|e| e.into())
+}
+
+fn create_glyphs<'a>(lines: &Vec<String>, font: &'a Font, scale: Scale, v_metrics: &VMetrics, max_height: f32) -> GlyphVec<'a> {
     let mut glyphs = Vec::new();
     let mut top = 20.0 + v_metrics.ascent;
     let line_height = v_metrics.ascent + v_metrics.descent.abs() + v_metrics.line_gap;
     let left = 20.0;
-    for text in poem.0 {
+    for text in lines {
         let mut line_glyphs = font.layout(&text, scale, point(left, top)).collect::<Vec<_>>();
         top += line_height;
-        if top >= (options.dimensions.height as f32) {
+        if top >= (max_height as f32) {
             break;
         }
         glyphs.append(&mut line_glyphs);
     }
+    glyphs
+}
 
-    let mut image = DynamicImage::new_rgba8(options.dimensions.width, options.dimensions.height).to_rgba();
-    let background = [options.background.red, options.background.green, options.background.blue, 255];
+fn create_image(width: u32, height: u32, red: u8, green: u8, blue: u8) -> Image {
+    let mut image = DynamicImage::new_rgba8(width, height).to_rgba();
+    let background = [red, green, blue, 255];
     for (_, _, pixel) in image.enumerate_pixels_mut() {
         pixel.data = background;
     }
+    image
+}
+
+fn render_glyphs(image: &mut Image, glyphs: &GlyphVec, color: &Srgb<u8>) {
     for glyph in glyphs {
         if let Some(bounding_box) = glyph.pixel_bounding_box() {
             glyph.draw(|x, y, v| {
@@ -69,10 +97,6 @@ pub fn create_poetry_wall(options: &PoetryWallOptions) -> Result<()> {
             });
         }
     }
-
-    image.save(&options.output_file)?;
-
-    Ok(())
 }
 
 #[cfg(test)]
