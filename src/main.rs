@@ -64,7 +64,7 @@ fn parse_options() -> Result<PoetryWallOptions> {
                 .value_name("TTF_FONT")
                 .takes_value(true)
                 .required(false)
-                .default_value("32")
+                .default_value("72")
         )
         .arg(
             Arg::with_name("dimensions")
