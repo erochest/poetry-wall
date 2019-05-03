@@ -32,38 +32,9 @@ pub fn create_poetry_wall(options: &PoetryWallOptions) -> Result<()> {
     let poem = Poem::from_file(&options.poem_file)?;
     let font = load_font(&options.font_file)?;
 
-    let scale = Scale::uniform(options.font_size);
-    let v_metrics = font.v_metrics(scale);
+    let metrics = compute_metrics(options, &poem, &font);
 
-    let glyphs = create_glyphs(
-        0.0,
-        0.0,
-        &poem.0,
-        &font,
-        scale,
-        &v_metrics,
-        options.dimensions.height as f32,
-    );
-    let bounding_box = compute_bounding_box(&glyphs);
-    let rendered_height = (bounding_box.bottom - bounding_box.top) as u32;
-    let rendered_width = (bounding_box.right - bounding_box.left) as u32;
-    let top_offset = options
-        .top
-        .map(|v| v as f32)
-        .unwrap_or_else(|| 0.33 * (options.dimensions.height - rendered_height) as f32);
-    let left_offset = options
-        .left
-        .map(|v| v as f32)
-        .unwrap_or_else(|| 0.25 * (options.dimensions.width - rendered_width) as f32);
-    let glyphs = create_glyphs(
-        top_offset,
-        left_offset,
-        &poem.0,
-        &font,
-        scale,
-        &v_metrics,
-        options.dimensions.height as f32,
-    );
+    let glyphs = create_glyphs(&metrics, &poem.0, &font, options.dimensions.height as f32);
 
     let mut image = create_image(
         options.dimensions.width,
@@ -86,6 +57,14 @@ struct BoundingBox {
     right: i32,
 }
 
+struct Metrics {
+    pub scale: Scale,
+    pub font_size: f32,
+    pub v_metrics: VMetrics,
+    pub top_offset: f32,
+    pub left_offset: f32,
+}
+
 fn load_font<P: AsRef<Path>>(filename: P) -> Result<Font<'static>> {
     let mut font_file = File::open(filename)?;
     let mut buffer = Vec::new();
@@ -94,21 +73,19 @@ fn load_font<P: AsRef<Path>>(filename: P) -> Result<Font<'static>> {
 }
 
 fn create_glyphs<'a>(
-    top_offset: f32,
-    left_offset: f32,
+    metrics: &Metrics,
     lines: &Vec<String>,
     font: &'a Font,
-    scale: Scale,
-    v_metrics: &VMetrics,
     max_height: f32,
 ) -> GlyphVec<'a> {
     let mut glyphs = Vec::new();
-    let mut top = top_offset + v_metrics.ascent;
-    let line_height = v_metrics.ascent + v_metrics.descent.abs() + v_metrics.line_gap;
-    let left = left_offset;
+    let mut top = metrics.top_offset + metrics.v_metrics.ascent;
+    let line_height =
+        metrics.v_metrics.ascent + metrics.v_metrics.descent.abs() + metrics.v_metrics.line_gap;
+    let left = metrics.left_offset;
     for text in lines {
         let mut line_glyphs = font
-            .layout(&text, scale, point(left, top))
+            .layout(&text, metrics.scale, point(left, top))
             .collect::<Vec<_>>();
         top += line_height;
         if top >= (max_height as f32) {
@@ -137,6 +114,34 @@ fn compute_bounding_box(glyphs: &GlyphVec) -> BoundingBox {
     }
 
     bb
+}
+
+fn compute_metrics(options: &PoetryWallOptions, poem: &Poem, font: &Font) -> Metrics {
+    let font_size = options.font_size;
+    let scale = Scale::uniform(font_size);
+    let mut metrics = Metrics {
+        scale,
+        font_size,
+        v_metrics: font.v_metrics(scale),
+        top_offset: 0.0,
+        left_offset: 0.0,
+    };
+
+    let glyphs = create_glyphs(&metrics, &poem.0, &font, options.dimensions.height as f32);
+    let bounding_box = compute_bounding_box(&glyphs);
+    let rendered_height = (bounding_box.bottom - bounding_box.top) as u32;
+    let rendered_width = (bounding_box.right - bounding_box.left) as u32;
+
+    metrics.top_offset = options
+        .top
+        .map(|v| v as f32)
+        .unwrap_or_else(|| 0.33 * (options.dimensions.height - rendered_height) as f32);
+    metrics.left_offset = options
+        .left
+        .map(|v| v as f32)
+        .unwrap_or_else(|| 0.25 * (options.dimensions.width - rendered_width) as f32);
+
+    metrics
 }
 
 fn create_image(width: u32, height: u32, red: u8, green: u8, blue: u8) -> Image {
