@@ -12,6 +12,8 @@ pub struct PoetryWallOptions {
     pub color: Srgb<u8>,
     pub background: Srgb<u8>,
     pub dimensions: Dimension,
+    pub top: Option<u32>,
+    pub left: Option<u32>,
     pub output_file: PathBuf,
 }
 
@@ -23,6 +25,8 @@ impl PoetryWallOptions {
         color: Srgb<u8>,
         background: Srgb<u8>,
         dimensions: Dimension,
+        top: Option<u32>,
+        left: Option<u32>,
         output_file: P,
     ) -> Self {
         PoetryWallOptions {
@@ -32,6 +36,8 @@ impl PoetryWallOptions {
             color,
             background,
             dimensions,
+            left,
+            top,
             output_file: output_file.as_ref().into(),
         }
     }

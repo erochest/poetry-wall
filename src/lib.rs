@@ -9,7 +9,7 @@ use std::path::Path;
 
 use image::{DynamicImage, ImageBuffer, Rgba};
 use palette::Srgb;
-use rusttype::{Font, point, PositionedGlyph, Scale, VMetrics};
+use rusttype::{point, Font, PositionedGlyph, Scale, VMetrics};
 
 use crate::error::Result;
 use crate::options::PoetryWallOptions;
@@ -23,7 +23,6 @@ pub mod poem;
 type Image = ImageBuffer<Rgba<u8>, Vec<u8>>;
 type GlyphVec<'a> = Vec<PositionedGlyph<'a>>;
 
-// TODO: poem's bounding box
 // TODO: font scaling
 // TODO: fix glyph background
 // TODO: poem's position
@@ -36,7 +35,36 @@ pub fn create_poetry_wall(options: &PoetryWallOptions) -> Result<()> {
     let scale = Scale::uniform(options.font_size);
     let v_metrics = font.v_metrics(scale);
 
-    let glyphs = create_glyphs(&poem.0, &font, scale, &v_metrics, options.dimensions.height as f32);
+    let glyphs = create_glyphs(
+        0.0,
+        0.0,
+        &poem.0,
+        &font,
+        scale,
+        &v_metrics,
+        options.dimensions.height as f32,
+    );
+    let bounding_box = compute_bounding_box(&glyphs);
+    let rendered_height = (bounding_box.bottom - bounding_box.top) as u32;
+    let rendered_width = (bounding_box.right - bounding_box.left) as u32;
+    let top_offset = options
+        .top
+        .map(|v| v as f32)
+        .unwrap_or_else(|| 0.33 * (options.dimensions.height - rendered_height) as f32);
+    let left_offset = options
+        .left
+        .map(|v| v as f32)
+        .unwrap_or_else(|| 0.25 * (options.dimensions.width - rendered_width) as f32);
+    let glyphs = create_glyphs(
+        top_offset,
+        left_offset,
+        &poem.0,
+        &font,
+        scale,
+        &v_metrics,
+        options.dimensions.height as f32,
+    );
+
     let mut image = create_image(
         options.dimensions.width,
         options.dimensions.height,
@@ -51,6 +79,13 @@ pub fn create_poetry_wall(options: &PoetryWallOptions) -> Result<()> {
     Ok(())
 }
 
+struct BoundingBox {
+    top: i32,
+    left: i32,
+    bottom: i32,
+    right: i32,
+}
+
 fn load_font<P: AsRef<Path>>(filename: P) -> Result<Font<'static>> {
     let mut font_file = File::open(filename)?;
     let mut buffer = Vec::new();
@@ -58,13 +93,23 @@ fn load_font<P: AsRef<Path>>(filename: P) -> Result<Font<'static>> {
     Font::from_bytes(buffer).map_err(|e| e.into())
 }
 
-fn create_glyphs<'a>(lines: &Vec<String>, font: &'a Font, scale: Scale, v_metrics: &VMetrics, max_height: f32) -> GlyphVec<'a> {
+fn create_glyphs<'a>(
+    top_offset: f32,
+    left_offset: f32,
+    lines: &Vec<String>,
+    font: &'a Font,
+    scale: Scale,
+    v_metrics: &VMetrics,
+    max_height: f32,
+) -> GlyphVec<'a> {
     let mut glyphs = Vec::new();
-    let mut top = 20.0 + v_metrics.ascent;
+    let mut top = top_offset + v_metrics.ascent;
     let line_height = v_metrics.ascent + v_metrics.descent.abs() + v_metrics.line_gap;
-    let left = 20.0;
+    let left = left_offset;
     for text in lines {
-        let mut line_glyphs = font.layout(&text, scale, point(left, top)).collect::<Vec<_>>();
+        let mut line_glyphs = font
+            .layout(&text, scale, point(left, top))
+            .collect::<Vec<_>>();
         top += line_height;
         if top >= (max_height as f32) {
             break;
@@ -72,6 +117,26 @@ fn create_glyphs<'a>(lines: &Vec<String>, font: &'a Font, scale: Scale, v_metric
         glyphs.append(&mut line_glyphs);
     }
     glyphs
+}
+
+fn compute_bounding_box(glyphs: &GlyphVec) -> BoundingBox {
+    let mut bb = BoundingBox {
+        top: 0,
+        left: 0,
+        bottom: 0,
+        right: 0,
+    };
+
+    for glyph in glyphs {
+        if let Some(glyph_bb) = glyph.pixel_bounding_box() {
+            bb.top = bb.top.min(glyph_bb.min.y);
+            bb.left = bb.left.min(glyph_bb.min.x);
+            bb.bottom = bb.bottom.max(glyph_bb.max.y);
+            bb.right = bb.right.max(glyph_bb.max.x);
+        }
+    }
+
+    bb
 }
 
 fn create_image(width: u32, height: u32, red: u8, green: u8, blue: u8) -> Image {
@@ -134,7 +199,8 @@ mod tests {
                 buffer.push(0);
                 i += 1;
             }
-            let image: Option<ImageBuffer<Rgba<_>, Vec<_>>> = ImageBuffer::from_vec(WIDTH, HEIGHT, buffer);
+            let image: Option<ImageBuffer<Rgba<_>, Vec<_>>> =
+                ImageBuffer::from_vec(WIDTH, HEIGHT, buffer);
             image.map(|i| i.is_empty());
         });
     }
@@ -146,7 +212,8 @@ mod tests {
         let capacity = (4 * WIDTH * HEIGHT) as usize;
         b.iter(|| {
             let buffer = vec![0; capacity];
-            let image: Option<ImageBuffer<Rgba<_>, Vec<_>>> = ImageBuffer::from_vec(WIDTH, HEIGHT, buffer);
+            let image: Option<ImageBuffer<Rgba<_>, Vec<_>>> =
+                ImageBuffer::from_vec(WIDTH, HEIGHT, buffer);
             image.map(|i| i.is_empty());
         });
     }

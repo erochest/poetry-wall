@@ -77,6 +77,24 @@ fn parse_options() -> Result<PoetryWallOptions> {
                 .default_value("2880x2560")
         )
         .arg(
+            Arg::with_name("left")
+                .short("l")
+                .long("left")
+                .help("The size of the left margin. If omitted, it's computed.")
+                .value_name("NUMBER")
+                .takes_value(true)
+                .required(false)
+        )
+        .arg(
+            Arg::with_name("top")
+                .short("t")
+                .long("top")
+                .help("The size of the top margin. If omitted, it's computed.")
+                .value_name("NUMBER")
+                .takes_value(true)
+                .required(false)
+        )
+        .arg(
             Arg::with_name("output")
                 .short("o")
                 .long("output")
@@ -94,6 +112,8 @@ fn parse_options() -> Result<PoetryWallOptions> {
     let background = color_name_value(&matches, "background")?;
     let font_size: f32 = read_name_value(&matches, "max-font-size")?;
     let dimensions: Dimension = read_name_value(&matches, "dimensions")?;
+    let top: Option<u32> = matches.value_of("top").map(|v| v.parse()).transpose()?;
+    let left: Option<u32> = matches.value_of("left").map(|v| v.parse()).transpose()?;
 
     Ok(PoetryWallOptions::new(
         poem_file,
@@ -102,6 +122,8 @@ fn parse_options() -> Result<PoetryWallOptions> {
         color,
         background,
         dimensions,
+        top,
+        left,
         output_file,
     ))
 }
