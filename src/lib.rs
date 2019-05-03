@@ -23,18 +23,14 @@ pub mod poem;
 type Image = ImageBuffer<Rgba<u8>, Vec<u8>>;
 type GlyphVec<'a> = Vec<PositionedGlyph<'a>>;
 
-// TODO: font scaling
 // TODO: fix glyph background
-// TODO: poem's position
-// TODO: refactor to use services and make more testable
+// TODO: refactor to use modules and services and make more testable
 
 pub fn create_poetry_wall(options: &PoetryWallOptions) -> Result<()> {
     let poem = Poem::from_file(&options.poem_file)?;
     let font = load_font(&options.font_file)?;
-
-    let metrics = compute_metrics(options, &poem, &font);
-
-    let glyphs = create_glyphs(&metrics, &poem.0, &font, options.dimensions.height as f32);
+    let metrics = compute_metrics(options, &poem, font);
+    let glyphs = create_glyphs(&metrics, &poem.0);
 
     let mut image = create_image(
         options.dimensions.width,
@@ -58,11 +54,37 @@ struct BoundingBox {
 }
 
 struct Metrics {
+    pub font: Font<'static>,
     pub scale: Scale,
     pub font_size: f32,
     pub v_metrics: VMetrics,
     pub top_offset: f32,
     pub left_offset: f32,
+}
+
+impl Metrics {
+    fn new(font: Font<'static>, font_size: f32, top_offset: f32, left_offset: f32) -> Self {
+        let scale = Scale::uniform(font_size);
+        let v_metrics = font.v_metrics(scale);
+        Metrics {
+            font,
+            scale,
+            font_size,
+            v_metrics,
+            top_offset,
+            left_offset,
+        }
+    }
+
+    fn rescale_to(&mut self, font_size: f32) {
+        self.font_size = font_size;
+        self.scale = Scale::uniform(font_size);
+        self.v_metrics = self.font.v_metrics(self.scale);
+    }
+
+    fn rescale_by(&mut self, factor: f32) {
+        self.rescale_to(self.font_size * factor);
+    }
 }
 
 fn load_font<P: AsRef<Path>>(filename: P) -> Result<Font<'static>> {
@@ -72,25 +94,18 @@ fn load_font<P: AsRef<Path>>(filename: P) -> Result<Font<'static>> {
     Font::from_bytes(buffer).map_err(|e| e.into())
 }
 
-fn create_glyphs<'a>(
-    metrics: &Metrics,
-    lines: &Vec<String>,
-    font: &'a Font,
-    max_height: f32,
-) -> GlyphVec<'a> {
+fn create_glyphs<'a>(metrics: &Metrics, lines: &Vec<String>) -> GlyphVec<'a> {
     let mut glyphs = Vec::new();
     let mut top = metrics.top_offset + metrics.v_metrics.ascent;
     let line_height =
         metrics.v_metrics.ascent + metrics.v_metrics.descent.abs() + metrics.v_metrics.line_gap;
     let left = metrics.left_offset;
     for text in lines {
-        let mut line_glyphs = font
+        let mut line_glyphs = metrics
+            .font
             .layout(&text, metrics.scale, point(left, top))
             .collect::<Vec<_>>();
         top += line_height;
-        if top >= (max_height as f32) {
-            break;
-        }
         glyphs.append(&mut line_glyphs);
     }
     glyphs
@@ -116,19 +131,16 @@ fn compute_bounding_box(glyphs: &GlyphVec) -> BoundingBox {
     bb
 }
 
-fn compute_metrics(options: &PoetryWallOptions, poem: &Poem, font: &Font) -> Metrics {
-    let font_size = options.font_size;
-    let scale = Scale::uniform(font_size);
-    let mut metrics = Metrics {
-        scale,
-        font_size,
-        v_metrics: font.v_metrics(scale),
-        top_offset: 0.0,
-        left_offset: 0.0,
+fn compute_metrics(options: &PoetryWallOptions, poem: &Poem, font: Font<'static>) -> Metrics {
+    let mut metrics = Metrics::new(font, options.font_size, 0.0, 0.0);
+    let bounding_box = loop {
+        let glyphs = create_glyphs(&metrics, &poem.0);
+        let bb = compute_bounding_box(&glyphs);
+        if ((bb.bottom - bb.top) as u32) < options.dimensions.height {
+            break bb;
+        }
+        metrics.rescale_by(0.9);
     };
-
-    let glyphs = create_glyphs(&metrics, &poem.0, &font, options.dimensions.height as f32);
-    let bounding_box = compute_bounding_box(&glyphs);
     let rendered_height = (bounding_box.bottom - bounding_box.top) as u32;
     let rendered_width = (bounding_box.right - bounding_box.left) as u32;
 
