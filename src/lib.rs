@@ -23,7 +23,6 @@ pub mod poem;
 type Image = ImageBuffer<Rgba<u8>, Vec<u8>>;
 type GlyphVec<'a> = Vec<PositionedGlyph<'a>>;
 
-// TODO: fix glyph background
 // TODO: refactor to use modules and services and make more testable
 
 pub fn create_poetry_wall(options: &PoetryWallOptions) -> Result<()> {
@@ -169,13 +168,15 @@ fn render_glyphs(image: &mut Image, glyphs: &GlyphVec, color: &Srgb<u8>) {
     for glyph in glyphs {
         if let Some(bounding_box) = glyph.pixel_bounding_box() {
             glyph.draw(|x, y, v| {
-                image.put_pixel(
-                    x + bounding_box.min.x as u32,
-                    y + bounding_box.min.y as u32,
-                    Rgba {
-                        data: [color.red, color.green, color.blue, (v * 255.0) as u8],
-                    },
-                )
+                if v == 1.0 {
+                    image.put_pixel(
+                        x + bounding_box.min.x as u32,
+                        y + bounding_box.min.y as u32,
+                        Rgba {
+                            data: [color.red, color.green, color.blue, (v * 255.0) as u8],
+                        },
+                    )
+                }
             });
         }
     }
