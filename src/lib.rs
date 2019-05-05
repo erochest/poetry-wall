@@ -32,7 +32,7 @@ pub fn create_poetry_wall(options: &PoetryWallOptions) -> Result<()> {
     let poem = Poem::from_file(&options.poem_file)?;
     let font = load_font(&options.font_file)?;
     let metrics = compute_metrics(options, &poem, font);
-    let glyphs = create_glyphs(&metrics, &poem.0);
+    let glyphs = create_glyphs(&metrics, poem.lines());
 
     let mut image = create_image(
         options.dimensions.width,
@@ -105,7 +105,7 @@ fn compute_bounding_box(glyphs: &GlyphVec) -> BoundingBox {
 fn compute_metrics(options: &PoetryWallOptions, poem: &Poem, font: Font<'static>) -> Metrics {
     let mut metrics = Metrics::new(font, options.font_size, 0.0, 0.0);
     let bounding_box = loop {
-        let glyphs = create_glyphs(&metrics, &poem.0);
+        let glyphs = create_glyphs(&metrics, poem.lines());
         let bb = compute_bounding_box(&glyphs);
         if ((bb.bottom - bb.top) as u32) < options.dimensions.height {
             break bb;

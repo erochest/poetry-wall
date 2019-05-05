@@ -1,12 +1,11 @@
+use std::fs::File;
+use std::io::Read;
 use std::path::Path;
 
 use crate::error::Result;
-use std::fs::File;
-use std::io::Read;
 
-// TODO: Make accessor function?
 #[derive(Debug)]
-pub struct Poem(pub Vec<String>);
+pub struct Poem(Vec<String>);
 
 impl Poem {
     pub fn new(lines: Vec<String>) -> Self {
@@ -19,13 +18,18 @@ impl Poem {
         f.read_to_string(&mut buffer)?;
         Ok(Poem::new(buffer.lines().map(|line| line.into()).collect()))
     }
+
+    pub fn lines(&self) -> &Vec<String> {
+        &self.0
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use spectral::prelude::*;
-    use crate::poem::Poem;
+
     use crate::error::PoetryWallError;
+    use crate::poem::Poem;
 
     #[test]
     fn reads_from_file() {
