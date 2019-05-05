@@ -9,19 +9,22 @@ use std::path::Path;
 
 use image::{DynamicImage, ImageBuffer, Rgba};
 use palette::Srgb;
-use rusttype::{point, Font, PositionedGlyph, Scale, VMetrics};
+use rusttype::{Font, point, PositionedGlyph};
 
 use crate::error::Result;
+use crate::metrics::Metrics;
 use crate::options::PoetryWallOptions;
 use crate::poem::Poem;
 
 pub mod dimension;
 pub mod error;
+pub mod metrics;
 pub mod options;
 pub mod poem;
 
 type Image = ImageBuffer<Rgba<u8>, Vec<u8>>;
 type GlyphVec<'a> = Vec<PositionedGlyph<'a>>;
+type Color = Srgb<u8>;
 
 // TODO: refactor to use modules and services and make more testable
 
@@ -38,7 +41,7 @@ pub fn create_poetry_wall(options: &PoetryWallOptions) -> Result<()> {
         options.background.green.into(),
         options.background.blue.into(),
     );
-    render_glyphs(&mut image, &glyphs, &options.color);
+    render_glyphs(&mut image, &glyphs, &options.color, &options.background);
 
     image.save(&options.output_file)?;
 
@@ -50,40 +53,6 @@ struct BoundingBox {
     left: i32,
     bottom: i32,
     right: i32,
-}
-
-struct Metrics {
-    pub font: Font<'static>,
-    pub scale: Scale,
-    pub font_size: f32,
-    pub v_metrics: VMetrics,
-    pub top_offset: f32,
-    pub left_offset: f32,
-}
-
-impl Metrics {
-    fn new(font: Font<'static>, font_size: f32, top_offset: f32, left_offset: f32) -> Self {
-        let scale = Scale::uniform(font_size);
-        let v_metrics = font.v_metrics(scale);
-        Metrics {
-            font,
-            scale,
-            font_size,
-            v_metrics,
-            top_offset,
-            left_offset,
-        }
-    }
-
-    fn rescale_to(&mut self, font_size: f32) {
-        self.font_size = font_size;
-        self.scale = Scale::uniform(font_size);
-        self.v_metrics = self.font.v_metrics(self.scale);
-    }
-
-    fn rescale_by(&mut self, factor: f32) {
-        self.rescale_to(self.font_size * factor);
-    }
 }
 
 fn load_font<P: AsRef<Path>>(filename: P) -> Result<Font<'static>> {
@@ -164,22 +133,28 @@ fn create_image(width: u32, height: u32, red: u8, green: u8, blue: u8) -> Image 
     image
 }
 
-fn render_glyphs(image: &mut Image, glyphs: &GlyphVec, color: &Srgb<u8>) {
+fn render_glyphs(image: &mut Image, glyphs: &GlyphVec, color: &Color, background: &Color) {
     for glyph in glyphs {
         if let Some(bounding_box) = glyph.pixel_bounding_box() {
             glyph.draw(|x, y, v| {
-                if v == 1.0 {
-                    image.put_pixel(
-                        x + bounding_box.min.x as u32,
-                        y + bounding_box.min.y as u32,
-                        Rgba {
-                            data: [color.red, color.green, color.blue, (v * 255.0) as u8],
-                        },
-                    )
-                }
+                let pixel_color = alpha_composite(color, background, v);
+                image.put_pixel(
+                    x + bounding_box.min.x as u32,
+                    y + bounding_box.min.y as u32,
+                    Rgba {
+                        data: pixel_color,
+                    },
+                )
             });
         }
     }
+}
+
+fn alpha_composite(color: &Color, background: &Color, alpha: f32) -> [u8; 4] {
+    let red = ((color.red as f32) / 255.0) * alpha + ((background.red as f32) / 255.0) * (1.0 - alpha);
+    let green = ((color.green as f32) / 255.0) * alpha + ((background.green as f32) / 255.0) * (1.0 - alpha);
+    let blue = ((color.blue as f32) / 255.0) * alpha + ((background.blue as f32) / 255.0) * (1.0 - alpha);
+    [(red * 255.0) as u8, (green * 255.0) as u8, (blue * 255.0) as u8, 255]
 }
 
 #[cfg(test)]

@@ -74,7 +74,7 @@ fn parse_options() -> Result<PoetryWallOptions> {
                 .value_name("DIMENSION")
                 .takes_value(true)
                 .required(false)
-                .default_value("2880x2560")
+                .default_value("1920x1080")
         )
         .arg(
             Arg::with_name("left")
