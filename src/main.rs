@@ -136,6 +136,7 @@ fn color_name_value(matches: &ArgMatches, name: &str) -> Result<Srgb<u8>> {
             .ok_or_else(|| PoetryWallError::ColorError(Some(color_name.into()))))
 }
 
+// TODO: Move to `FromStr` implementation for a `Color` newtype.
 fn read_name_value<T: FromStr>(matches: &ArgMatches, name: &str) -> Result<T> {
     value_t!(matches, name, T).map_err(|message| PoetryWallError::InvalidMissingOption(format!("{}: {}", &name, &message)))
 }

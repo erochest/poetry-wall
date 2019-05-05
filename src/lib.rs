@@ -62,6 +62,7 @@ fn load_font<P: AsRef<Path>>(filename: P) -> Result<Font<'static>> {
     Font::from_bytes(buffer).map_err(|e| e.into())
 }
 
+// TODO: Make a method of `Metrics`?
 fn create_glyphs<'a>(metrics: &Metrics, lines: &Vec<String>) -> GlyphVec<'a> {
     let mut glyphs = Vec::new();
     let mut top = metrics.top_offset + metrics.v_metrics.ascent;
@@ -79,6 +80,7 @@ fn create_glyphs<'a>(metrics: &Metrics, lines: &Vec<String>) -> GlyphVec<'a> {
     glyphs
 }
 
+// TODO: Make a ctor for `BoundingBox`?
 fn compute_bounding_box(glyphs: &GlyphVec) -> BoundingBox {
     let mut bb = BoundingBox {
         top: 0,
@@ -99,6 +101,7 @@ fn compute_bounding_box(glyphs: &GlyphVec) -> BoundingBox {
     bb
 }
 
+// TODO: Make a ctor for `Metrics`?
 fn compute_metrics(options: &PoetryWallOptions, poem: &Poem, font: Font<'static>) -> Metrics {
     let mut metrics = Metrics::new(font, options.font_size, 0.0, 0.0);
     let bounding_box = loop {
@@ -124,6 +127,7 @@ fn compute_metrics(options: &PoetryWallOptions, poem: &Poem, font: Font<'static>
     metrics
 }
 
+// TODO: `image` utility module?
 fn create_image(width: u32, height: u32, red: u8, green: u8, blue: u8) -> Image {
     let mut image = DynamicImage::new_rgba8(width, height).to_rgba();
     let background = [red, green, blue, 255];
@@ -133,6 +137,7 @@ fn create_image(width: u32, height: u32, red: u8, green: u8, blue: u8) -> Image 
     image
 }
 
+// TODO: `image` utility module?
 fn render_glyphs(image: &mut Image, glyphs: &GlyphVec, color: &Color, background: &Color) {
     for glyph in glyphs {
         if let Some(bounding_box) = glyph.pixel_bounding_box() {
@@ -150,6 +155,8 @@ fn render_glyphs(image: &mut Image, glyphs: &GlyphVec, color: &Color, background
     }
 }
 
+// TODO: `image` utility module? Method on a `Color` newtype?
+// TODO: Output a `Color` (why outputting in a different format than accepting input?)
 fn alpha_composite(color: &Color, background: &Color, alpha: f32) -> [u8; 4] {
     let red = ((color.red as f32) / 255.0) * alpha + ((background.red as f32) / 255.0) * (1.0 - alpha);
     let green = ((color.green as f32) / 255.0) * alpha + ((background.green as f32) / 255.0) * (1.0 - alpha);

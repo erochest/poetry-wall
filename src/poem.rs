@@ -4,6 +4,7 @@ use crate::error::Result;
 use std::fs::File;
 use std::io::Read;
 
+// TODO: Make accessor function?
 #[derive(Debug)]
 pub struct Poem(pub Vec<String>);
 
