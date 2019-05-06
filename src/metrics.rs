@@ -1,6 +1,7 @@
 use rusttype::{Font, point, Scale, VMetrics};
 
-use crate::{compute_bounding_box, GlyphVec};
+use crate::bounding_box::BoundingBox;
+use crate::font::GlyphVec;
 use crate::options::PoetryWallOptions;
 use crate::poem::Poem;
 
@@ -31,7 +32,7 @@ impl Metrics {
         let mut metrics = Metrics::new(font, options.font_size, 0.0, 0.0);
         let bounding_box = loop {
             let glyphs = metrics.create_glyphs(poem.lines());
-            let bb = compute_bounding_box(&glyphs);
+            let bb = BoundingBox::compute_bounding_box(&glyphs);
             if ((bb.bottom - bb.top) as u32) < options.dimensions.height {
                 break bb;
             }

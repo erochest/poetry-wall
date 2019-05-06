@@ -8,23 +8,25 @@ use std::io::Read;
 use std::path::Path;
 
 use image::{DynamicImage, ImageBuffer, Rgba};
-use rusttype::{Font, PositionedGlyph};
+use rusttype::Font;
 
 use crate::color::Color;
 use crate::error::Result;
+use crate::font::{GlyphVec, load_font};
 use crate::metrics::Metrics;
 use crate::options::PoetryWallOptions;
 use crate::poem::Poem;
 
+pub mod bounding_box;
 pub mod color;
 pub mod dimension;
 pub mod error;
+pub mod font;
 pub mod metrics;
 pub mod options;
 pub mod poem;
 
 type Image = ImageBuffer<Rgba<u8>, Vec<u8>>;
-type GlyphVec<'a> = Vec<PositionedGlyph<'a>>;
 
 // TODO: refactor to use modules and services and make more testable
 
@@ -47,41 +49,6 @@ pub fn create_poetry_wall(options: &PoetryWallOptions) -> Result<()> {
     image.save(&options.output_file)?;
 
     Ok(())
-}
-
-struct BoundingBox {
-    top: i32,
-    left: i32,
-    bottom: i32,
-    right: i32,
-}
-
-fn load_font<P: AsRef<Path>>(filename: P) -> Result<Font<'static>> {
-    let mut font_file = File::open(filename)?;
-    let mut buffer = Vec::new();
-    font_file.read_to_end(&mut buffer)?;
-    Font::from_bytes(buffer).map_err(|e| e.into())
-}
-
-// TODO: Make a ctor for `BoundingBox`?
-fn compute_bounding_box(glyphs: &GlyphVec) -> BoundingBox {
-    let mut bb = BoundingBox {
-        top: 0,
-        left: 0,
-        bottom: 0,
-        right: 0,
-    };
-
-    for glyph in glyphs {
-        if let Some(glyph_bb) = glyph.pixel_bounding_box() {
-            bb.top = bb.top.min(glyph_bb.min.y);
-            bb.left = bb.left.min(glyph_bb.min.x);
-            bb.bottom = bb.bottom.max(glyph_bb.max.y);
-            bb.right = bb.right.max(glyph_bb.max.x);
-        }
-    }
-
-    bb
 }
 
 // TODO: `image` utility module?
