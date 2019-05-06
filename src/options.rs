@@ -1,7 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use palette::Srgb;
-
+use crate::color::Color;
 use crate::dimension::Dimension;
 
 #[derive(Debug)]
@@ -9,8 +8,8 @@ pub struct PoetryWallOptions {
     pub poem_file: PathBuf,
     pub font_file: PathBuf,
     pub font_size: f32,
-    pub color: Srgb<u8>,
-    pub background: Srgb<u8>,
+    pub color: Color,
+    pub background: Color,
     pub dimensions: Dimension,
     pub top: Option<u32>,
     pub left: Option<u32>,
@@ -22,8 +21,8 @@ impl PoetryWallOptions {
         poem_file: P,
         font_file: P,
         font_size: f32,
-        color: Srgb<u8>,
-        background: Srgb<u8>,
+        color: Color,
+        background: Color,
         dimensions: Dimension,
         top: Option<u32>,
         left: Option<u32>,

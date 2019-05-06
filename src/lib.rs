@@ -8,14 +8,15 @@ use std::io::Read;
 use std::path::Path;
 
 use image::{DynamicImage, ImageBuffer, Rgba};
-use palette::Srgb;
 use rusttype::{Font, point, PositionedGlyph};
 
+use crate::color::Color;
 use crate::error::Result;
 use crate::metrics::Metrics;
 use crate::options::PoetryWallOptions;
 use crate::poem::Poem;
 
+pub mod color;
 pub mod dimension;
 pub mod error;
 pub mod metrics;
@@ -24,7 +25,6 @@ pub mod poem;
 
 type Image = ImageBuffer<Rgba<u8>, Vec<u8>>;
 type GlyphVec<'a> = Vec<PositionedGlyph<'a>>;
-type Color = Srgb<u8>;
 
 // TODO: refactor to use modules and services and make more testable
 
@@ -33,13 +33,14 @@ pub fn create_poetry_wall(options: &PoetryWallOptions) -> Result<()> {
     let font = load_font(&options.font_file)?;
     let metrics = compute_metrics(options, &poem, font);
     let glyphs = create_glyphs(&metrics, poem.lines());
+    let background = options.background.srgb();
 
     let mut image = create_image(
         options.dimensions.width,
         options.dimensions.height,
-        options.background.red.into(),
-        options.background.green.into(),
-        options.background.blue.into(),
+        background.red.into(),
+        background.green.into(),
+        background.blue.into(),
     );
     render_glyphs(&mut image, &glyphs, &options.color, &options.background);
 
@@ -142,26 +143,17 @@ fn render_glyphs(image: &mut Image, glyphs: &GlyphVec, color: &Color, background
     for glyph in glyphs {
         if let Some(bounding_box) = glyph.pixel_bounding_box() {
             glyph.draw(|x, y, v| {
-                let pixel_color = alpha_composite(color, background, v);
+                let pixel_color = color.alpha_composite(background, v);
                 image.put_pixel(
                     x + bounding_box.min.x as u32,
                     y + bounding_box.min.y as u32,
                     Rgba {
-                        data: pixel_color,
+                        data: pixel_color.as_array(),
                     },
                 )
             });
         }
     }
-}
-
-// TODO: `image` utility module? Method on a `Color` newtype?
-// TODO: Output a `Color` (why outputting in a different format than accepting input?)
-fn alpha_composite(color: &Color, background: &Color, alpha: f32) -> [u8; 4] {
-    let red = ((color.red as f32) / 255.0) * alpha + ((background.red as f32) / 255.0) * (1.0 - alpha);
-    let green = ((color.green as f32) / 255.0) * alpha + ((background.green as f32) / 255.0) * (1.0 - alpha);
-    let blue = ((color.blue as f32) / 255.0) * alpha + ((background.blue as f32) / 255.0) * (1.0 - alpha);
-    [(red * 255.0) as u8, (green * 255.0) as u8, (blue * 255.0) as u8, 255]
 }
 
 #[cfg(test)]

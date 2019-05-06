@@ -3,7 +3,6 @@ use std::str::FromStr;
 
 use clap::{app_from_crate, Arg, ArgMatches, crate_authors, crate_description, crate_name,
            crate_version, value_t};
-use palette::Srgb;
 
 use poetry_wall::create_poetry_wall;
 use poetry_wall::dimension::Dimension;
@@ -108,8 +107,8 @@ fn parse_options() -> Result<PoetryWallOptions> {
     let poem_file: PathBuf = read_name_value(&matches, "poem")?;
     let font_file = read_name_value(&matches, "font")?;
     let output_file = read_name_value(&matches, "output")?;
-    let color = color_name_value(&matches, "color")?;
-    let background = color_name_value(&matches, "background")?;
+    let color = read_name_value(&matches, "color")?;
+    let background = read_name_value(&matches, "background")?;
     let font_size: f32 = read_name_value(&matches, "max-font-size")?;
     let dimensions: Dimension = read_name_value(&matches, "dimensions")?;
     let top: Option<u32> = matches.value_of("top").map(|v| v.parse()).transpose()?;
@@ -128,15 +127,6 @@ fn parse_options() -> Result<PoetryWallOptions> {
     ))
 }
 
-fn color_name_value(matches: &ArgMatches, name: &str) -> Result<Srgb<u8>> {
-    matches
-        .value_of(name)
-        .ok_or_else(|| PoetryWallError::ColorError(None))
-        .and_then(|color_name| palette::named::from_str(color_name)
-            .ok_or_else(|| PoetryWallError::ColorError(Some(color_name.into()))))
-}
-
-// TODO: Move to `FromStr` implementation for a `Color` newtype.
 fn read_name_value<T: FromStr>(matches: &ArgMatches, name: &str) -> Result<T> {
     value_t!(matches, name, T).map_err(|message| PoetryWallError::InvalidMissingOption(format!("{}: {}", &name, &message)))
 }
