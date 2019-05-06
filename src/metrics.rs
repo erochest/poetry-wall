@@ -1,4 +1,8 @@
-use rusttype::{Font, Scale, VMetrics};
+use rusttype::{Font, point, Scale, VMetrics};
+
+use crate::{compute_bounding_box, GlyphVec};
+use crate::options::PoetryWallOptions;
+use crate::poem::Poem;
 
 pub struct Metrics {
     pub font: Font<'static>,
@@ -23,6 +27,31 @@ impl Metrics {
         }
     }
 
+    pub fn compute_metrics(options: &PoetryWallOptions, poem: &Poem, font: Font<'static>) -> Self {
+        let mut metrics = Metrics::new(font, options.font_size, 0.0, 0.0);
+        let bounding_box = loop {
+            let glyphs = metrics.create_glyphs(poem.lines());
+            let bb = compute_bounding_box(&glyphs);
+            if ((bb.bottom - bb.top) as u32) < options.dimensions.height {
+                break bb;
+            }
+            metrics.rescale_by(0.9);
+        };
+        let rendered_height = (bounding_box.bottom - bounding_box.top) as u32;
+        let rendered_width = (bounding_box.right - bounding_box.left) as u32;
+
+        metrics.top_offset = options
+            .top
+            .map(|v| v as f32)
+            .unwrap_or_else(|| 0.33 * (options.dimensions.height - rendered_height) as f32);
+        metrics.left_offset = options
+            .left
+            .map(|v| v as f32)
+            .unwrap_or_else(|| 0.25 * (options.dimensions.width - rendered_width) as f32);
+
+        metrics
+    }
+
     pub fn rescale_to(&mut self, font_size: f32) {
         self.font_size = font_size;
         self.scale = Scale::uniform(font_size);
@@ -31,5 +60,22 @@ impl Metrics {
 
     pub fn rescale_by(&mut self, factor: f32) {
         self.rescale_to(self.font_size * factor);
+    }
+
+    pub fn create_glyphs<'a>(&self, lines: &Vec<String>) -> GlyphVec<'a> {
+        let mut glyphs = Vec::new();
+        let mut top = self.top_offset + self.v_metrics.ascent;
+        let line_height =
+            self.v_metrics.ascent + self.v_metrics.descent.abs() + self.v_metrics.line_gap;
+        let left = self.left_offset;
+        for text in lines {
+            let mut line_glyphs = self
+                .font
+                .layout(&text, self.scale, point(left, top))
+                .collect::<Vec<_>>();
+            top += line_height;
+            glyphs.append(&mut line_glyphs);
+        }
+        glyphs
     }
 }

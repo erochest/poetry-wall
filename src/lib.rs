@@ -8,7 +8,7 @@ use std::io::Read;
 use std::path::Path;
 
 use image::{DynamicImage, ImageBuffer, Rgba};
-use rusttype::{Font, point, PositionedGlyph};
+use rusttype::{Font, PositionedGlyph};
 
 use crate::color::Color;
 use crate::error::Result;
@@ -31,8 +31,8 @@ type GlyphVec<'a> = Vec<PositionedGlyph<'a>>;
 pub fn create_poetry_wall(options: &PoetryWallOptions) -> Result<()> {
     let poem = Poem::from_file(&options.poem_file)?;
     let font = load_font(&options.font_file)?;
-    let metrics = compute_metrics(options, &poem, font);
-    let glyphs = create_glyphs(&metrics, poem.lines());
+    let metrics = Metrics::compute_metrics(options, &poem, font);
+    let glyphs = metrics.create_glyphs(poem.lines());
     let background = options.background.srgb();
 
     let mut image = create_image(
@@ -63,24 +63,6 @@ fn load_font<P: AsRef<Path>>(filename: P) -> Result<Font<'static>> {
     Font::from_bytes(buffer).map_err(|e| e.into())
 }
 
-// TODO: Make a method of `Metrics`?
-fn create_glyphs<'a>(metrics: &Metrics, lines: &Vec<String>) -> GlyphVec<'a> {
-    let mut glyphs = Vec::new();
-    let mut top = metrics.top_offset + metrics.v_metrics.ascent;
-    let line_height =
-        metrics.v_metrics.ascent + metrics.v_metrics.descent.abs() + metrics.v_metrics.line_gap;
-    let left = metrics.left_offset;
-    for text in lines {
-        let mut line_glyphs = metrics
-            .font
-            .layout(&text, metrics.scale, point(left, top))
-            .collect::<Vec<_>>();
-        top += line_height;
-        glyphs.append(&mut line_glyphs);
-    }
-    glyphs
-}
-
 // TODO: Make a ctor for `BoundingBox`?
 fn compute_bounding_box(glyphs: &GlyphVec) -> BoundingBox {
     let mut bb = BoundingBox {
@@ -100,32 +82,6 @@ fn compute_bounding_box(glyphs: &GlyphVec) -> BoundingBox {
     }
 
     bb
-}
-
-// TODO: Make a ctor for `Metrics`?
-fn compute_metrics(options: &PoetryWallOptions, poem: &Poem, font: Font<'static>) -> Metrics {
-    let mut metrics = Metrics::new(font, options.font_size, 0.0, 0.0);
-    let bounding_box = loop {
-        let glyphs = create_glyphs(&metrics, poem.lines());
-        let bb = compute_bounding_box(&glyphs);
-        if ((bb.bottom - bb.top) as u32) < options.dimensions.height {
-            break bb;
-        }
-        metrics.rescale_by(0.9);
-    };
-    let rendered_height = (bounding_box.bottom - bounding_box.top) as u32;
-    let rendered_width = (bounding_box.right - bounding_box.left) as u32;
-
-    metrics.top_offset = options
-        .top
-        .map(|v| v as f32)
-        .unwrap_or_else(|| 0.33 * (options.dimensions.height - rendered_height) as f32);
-    metrics.left_offset = options
-        .left
-        .map(|v| v as f32)
-        .unwrap_or_else(|| 0.25 * (options.dimensions.width - rendered_width) as f32);
-
-    metrics
 }
 
 // TODO: `image` utility module?
