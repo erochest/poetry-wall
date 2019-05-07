@@ -20,7 +20,7 @@ pub mod metrics;
 pub mod options;
 pub mod poem;
 
-// TODO: refactor to use modules and services and make more testable
+// TODO: refactor to use interfaces and make more testable
 
 pub fn create_poetry_wall(options: &PoetryWallOptions) -> Result<()> {
     let poem = Poem::from_file(&options.poem_file)?;

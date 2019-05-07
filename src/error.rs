@@ -1,9 +1,7 @@
 use std::{fmt, io, num, result};
 use std::error::Error;
 
-use crate::error;
-
-pub type Result<A> = result::Result<A, error::PoetryWallError>;
+pub type Result<A> = result::Result<A, PoetryWallError>;
 
 #[derive(Debug)]
 pub enum PoetryWallError {
