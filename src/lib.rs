@@ -32,9 +32,9 @@ pub fn create_poetry_wall(options: &PoetryWallOptions) -> Result<()> {
     let mut image = create_image(
         options.dimensions.width,
         options.dimensions.height,
-        background.red.into(),
-        background.green.into(),
-        background.blue.into(),
+        background.red,
+        background.green,
+        background.blue,
     );
     render_glyphs(&mut image, &glyphs, &options.color, &options.background);
 

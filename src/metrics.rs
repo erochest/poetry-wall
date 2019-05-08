@@ -5,8 +5,8 @@ use crate::font::GlyphVec;
 use crate::options::PoetryWallOptions;
 use crate::poem::Poem;
 
-pub struct Metrics {
-    pub font: Font<'static>,
+pub struct Metrics<'a> {
+    pub font: Font<'a>,
     pub scale: Scale,
     pub font_size: f32,
     pub v_metrics: VMetrics,
@@ -14,8 +14,8 @@ pub struct Metrics {
     pub left_offset: f32,
 }
 
-impl Metrics {
-    pub fn new(font: Font<'static>, font_size: f32, top_offset: f32, left_offset: f32) -> Self {
+impl<'a> Metrics<'a> {
+    pub fn new(font: Font<'a>, font_size: f32, top_offset: f32, left_offset: f32) -> Self {
         let scale = Scale::uniform(font_size);
         let v_metrics = font.v_metrics(scale);
         Metrics {
@@ -28,7 +28,7 @@ impl Metrics {
         }
     }
 
-    pub fn compute_metrics(options: &PoetryWallOptions, poem: &Poem, font: Font<'static>) -> Self {
+    pub fn compute_metrics(options: &PoetryWallOptions, poem: &Poem, font: Font<'a>) -> Self {
         let mut metrics = Metrics::new(font, options.font_size, 0.0, 0.0);
         let bounding_box = loop {
             let glyphs = metrics.create_glyphs(poem.lines());
@@ -63,7 +63,7 @@ impl Metrics {
         self.rescale_to(self.font_size * factor);
     }
 
-    pub fn create_glyphs<'a>(&self, lines: &Vec<String>) -> GlyphVec<'a> {
+    pub fn create_glyphs(&self, lines: &Vec<String>) -> GlyphVec {
         let mut glyphs = Vec::new();
         let mut top = self.top_offset + self.v_metrics.ascent;
         let line_height =

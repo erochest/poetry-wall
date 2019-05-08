@@ -4,8 +4,8 @@ use crate::color::Color;
 
 pub type Image = ImageBuffer<Rgba<u8>, Vec<u8>>;
 
-pub fn create_image(width: u32, height: u32, red: u8, green: u8, blue: u8) -> Image {
-    let background = [red as u8, green as u8, blue as u8, 255];
+pub fn create_image<U8: Into<u8>>(width: u32, height: u32, red: U8, green: U8, blue: U8) -> Image {
+    let background = [red.into(), green.into(), blue.into(), 255];
     ImageBuffer::from_pixel(width, height, Rgba(background))
 }
 
